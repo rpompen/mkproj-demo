@@ -1,0 +1,20 @@
+{:deps {hoplon {:mvn/version "7.2.0"}
+        org.clojure/clojure {:mvn/version "1.10.1"}
+        org.clojure/clojurescript {:mvn/version "1.10.520"}
+        compojure {:mvn/version "1.6.1"}
+        cljs-http {:mvn/version "0.1.46"}
+        ring {:mvn/version "1.8.0"}
+        ring/ring-defaults {:mvn/version "0.3.2"}
+        jarohen/chord {:mvn/version "0.8.1"}
+        javax.xml.bind/jaxb-api {:mvn/version "2.4.0-b180830.0359"}}
+ :paths ["src/clj" "src/cljs" "src/cljc" "target" "resources"]
+ :aliases {:prod {:main-opts ["-m" "cljs.main" "-d" "target/public/cljs-out/dev" "-o" "target/public/cljs-out/dev-main.js" "-co" "cljsopts.edn" "-c" "mkproj-demo.core"]}
+           :optimal {:main-opts ["-m" "cljs.main" "-O" "advanced" "-d" "target/public/cljs-out/dev" "-o" "target/public/cljs-out/dev-main.js" "-co" "cljsopts.edn" "-c" "mkproj-demo.core"]}
+           :fig {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}}}
+           :outdated {:extra-deps {olical/depot {:mvn/version "1.8.4"}}
+                      :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
+           :uberjar {:extra-deps
+                      {com.healthfinch/depstar {:git/url "https://github.com/healthfinch/depstar.git"
+                                                :sha "4aa7b35189693feebc7d7e4a180b8af0326c9164"}}
+                     :main-opts ["-m" "hf.depstar.uberjar" "target/mkproj-demo.jar"]}}}
+
