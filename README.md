@@ -1,5 +1,7 @@
-An empty project
-=============
+# mkproj-demo
+
+## An empty project made by mkproj
+
 (when in VS code, press `ctrl-k v` to render this file)
 
 ## What does this project deliver
@@ -7,7 +9,7 @@ An empty project
 This project shows several things:
 
 1. Hot CSS reloading
-2. Hot code reloading
+2. Hot code reloading (compile-on-save, no browser reload required)
 3. RPC mechanism for biderectional websocket to back-end
 4. sample querying of CouchDB via REST interface
 5. initialized GIT repository
@@ -68,4 +70,4 @@ http://clojure.org/
 http://clojurescript.org/  
 http://hoplon.io/  
 https://github.com/jarohen/chord  
-# mkproj-demo
+
