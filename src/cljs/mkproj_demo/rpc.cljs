@@ -33,6 +33,7 @@
       (close! ws-channel))))
 
 (defc uuids nil)
+
 (defn get-uuid
   "Returns `n` or 1 UUIDs in a vector."
   [& n]
