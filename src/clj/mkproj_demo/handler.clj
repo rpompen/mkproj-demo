@@ -39,4 +39,3 @@
       (wrap-session {:store (cookie-store {:key "a 16-byte secret"})})
       (wrap-defaults api-defaults)
       (wrap-resource "public")))
-

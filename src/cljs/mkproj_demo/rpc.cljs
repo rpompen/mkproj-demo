@@ -45,8 +45,6 @@
   "Fire Mango query to CouchDB.
    JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
 
-   Output must be a hash-map.
-
    An optional :map-fn and then :filter-fn are applied 
    to the result set."
   [m cl & {:keys [map-fn filter-fn agg-fn]}]
@@ -55,37 +53,29 @@
           (<! (http/post (str "http://" db-server ":" db-port "/" db-name "/_find")
                          {:json-params m}))]
       (if (:success result)
-        (swap! cl merge (cond->> result
-                          true :body
-                          true :docs
-                          map-fn (mapv map-fn)
-                          filter-fn (filterv filter-fn)
-                          agg-fn agg-fn))
+        (reset! cl (cond->> result
+                     true :body
+                     true :docs
+                     map-fn (mapv map-fn)
+                     filter-fn (filterv filter-fn)
+                     agg-fn agg-fn))
         (reset! error (-> result :body))))))
 
 ;; segmented state + lenses
 ;; reduces load due to state modifications and allows easier refactoring
 (defonce state
-  (cell {:config {}
-         :ui {}}))
+  (cell {}))
 
-;; State lenses
-(defc= st-config (:config state) #(swap! state assoc :config %))
-(defc= st-ui     (:ui state)     #(swap! state assoc :ui %))
-
-;; RPC funtions need direct lens into state, or separate cell altogether
-(defc= st-data
-  (get-in state [:config :data])  ;; getter
-  #(swap! state assoc-in [:config :data] %))  ;; setter
+(defc= file-data (:file-data state) #(swap! state assoc :file-data %))
+(defc= db-data   (:db-data state)   #(swap! state assoc :db-data %))
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
-(def get-data (partial launch-fn 'get-data st-data))
+(def get-file (partial launch-fn 'get-file file-data))
 
 ;; Database
 ;; Uses aggregate function to return hash-map, as required for state-merging
-(def get-items (fn [] (query {"selector"
-                              {"type" "person"}
-                              "fields" ["name" "age"]}
-                             st-config :agg-fn #(hash-map :items %))))
-
+(def get-db (fn [] (query {"selector"
+                            {"type" "person"}
+                           "fields" ["name" "age"]}
+                          db-data)))
