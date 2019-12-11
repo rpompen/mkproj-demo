@@ -13,11 +13,15 @@
 (def db-server "127.0.0.1")
 (def db-port 5984)
 (def db-name "sample")
+(def urls (str "http://" db-server ":" db-port "/"))
+(def urld (str urls db-name))
+(def urlq (str urld "/_find"))
+;; Merge with :json-params for authentication
+(def db-auth {:basic-auth {:username "admin"
+                           :password "Cl0jure!"}})
 
 ;; RPC launcher
-(defc result nil)
 (defc error nil)
-(defc loading [])
 
 (defn launch-fn 
   "Launches RPC call for `f` in backend. Return value goes into cell."
@@ -32,6 +36,7 @@
           (reset! cl (:message (<! ws-channel)))))
       (close! ws-channel))))
 
+;;; UUID generator of CouchDB
 (defc uuids nil)
 
 (defn get-uuid
@@ -42,17 +47,29 @@
                                (when (some? n) (str "?count=" (first n))))))]
         (reset! uuids (:uuids (:body result))))))
 
+;;; CRUD: CREATE RETRIEVE UPDATE DELETE
+;;; CREATE
+(defn doc-add
+  "Add document to CouchDB and run callback for refresh."
+  [m cb]
+  (go (let [uuid (-> (<! (http/get (str urls "/_uuids"))) :body :uuids first)
+            result (<! (http/put (str urld "/" uuid)
+                                 {:json-params m}))]
+        (when-not (:success result)
+          (reset! error (:body result)))
+        (cb))))
+
+;;; RETRIEVE
 (defn query
   "Fire Mango query to CouchDB.
    JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
 
-   An optional :map-fn and then :filter-fn are applied 
+   An optional :map-fn, :filter-fn and then are applied 
    to the result set."
   [m cl & {:keys [map-fn filter-fn agg-fn]}]
   (go
     (let [result
-          (<! (http/post (str "http://" db-server ":" db-port "/" db-name "/_find")
-                         {:json-params m}))]
+          (<! (http/post urlq {:json-params m}))]
       (if (:success result)
         (reset! cl (cond->> result
                      true :body
@@ -61,6 +78,29 @@
                      filter-fn (filterv filter-fn)
                      agg-fn agg-fn))
         (reset! error (-> result :body))))))
+
+;;; UPDATE
+(defn doc-update
+  "Update document in CouchDB and run callback for refresh."
+  [id m cb]
+  (go (let [old (-> (<! (http/post urlq {:json-params {"selector" {"_id" id}}}))
+                    :body :docs first)
+            result (-> (<! (http/put (str urld "/" id)
+                                     {:json-params (merge old m)})))]
+        (when-not (:success result)
+          (reset! error (:body result)))
+        (cb))))
+
+;;; DELETE
+(defn doc-delete
+  "Delete document in CouchDB and run callback for refresh."
+  [id cb]
+  (go (let [rev (-> (<! (http/post urlq {:json-params {"selector" {"_id" id}}}))
+                    :body :docs first :_rev)
+            result (<! (http/delete (str urld "/" id "?rev=" rev)))]
+        (when-not (:success result)
+          (reset! error (:body result)))
+        (cb))))
 
 ;; segmented state + lenses
 ;; reduces load due to state modifications and allows easier refactoring
@@ -77,6 +117,11 @@
 ;; Database
 ;; Uses aggregate function to return hash-map, as required for state-merging
 (def get-db (fn [] (query {"selector"
-                            {"type" "person"}
-                           "fields" ["name" "age"]}
+                           {"type" "person"}}
                           db-data)))
+
+(defn add-db [name age] (doc-add {"type" "person"
+                                  "name" name
+                                  "age" age} get-db))
+
+(defn del-db [id] (doc-delete id get-db))
