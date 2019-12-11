@@ -47,6 +47,7 @@ This project shows several things:
 1. install CouchDB
 2. make database named `sample`
 3. create document with fields "type": "person", "name": "Jack", "age": 21
+4. enable CORS in settings
 
 ## compile for distribution
 
