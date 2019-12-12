@@ -63,10 +63,8 @@
 (defn query
   "Fire Mango query to CouchDB.
    JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
-
-   An optional :map-fn, :filter-fn and then are applied 
-   to the result set."
-  [m cl & {:keys [map-fn filter-fn agg-fn]}]
+   An optional funtion `f` is applied to the result set."
+  [m cl & f]
   (go
     (let [result
           (<! (http/post urlq {:json-params m}))]
@@ -74,9 +72,7 @@
         (reset! cl (cond->> result
                      true :body
                      true :docs
-                     map-fn (mapv map-fn)
-                     filter-fn (filterv filter-fn)
-                     agg-fn agg-fn))
+                     f f))
         (reset! error (-> result :body))))))
 
 ;;; UPDATE
