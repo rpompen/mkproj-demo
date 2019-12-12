@@ -63,8 +63,8 @@
 (defn query
   "Fire Mango query to CouchDB.
    JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
-   An optional funtion `f` is applied to the result set."
-  [m cl & f]
+   An optional funtion `:func` is applied to the result set."
+  [m cl & {func :func}]
   (go
     (let [result
           (<! (http/post urlq {:json-params m}))]
@@ -72,7 +72,7 @@
         (reset! cl (cond->> result
                      true :body
                      true :docs
-                     f f))
+                     func func))
         (reset! error (-> result :body))))))
 
 ;;; UPDATE
@@ -114,7 +114,7 @@
 ;; Uses aggregate function to return hash-map, as required for state-merging
 (def get-db (fn [] (query {"selector"
                            {"type" "person"}}
-                          db-data)))
+                          db-data :func (partial sort-by :name))))
 
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
