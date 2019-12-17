@@ -112,9 +112,9 @@
 
 ;; Database
 ;; Uses aggregate function to return hash-map, as required for state-merging
-(def get-db (fn [] (query {"selector"
-                           {"type" "person"}}
-                          db-data :func (partial sort-by :name))))
+(defn get-db [] (query {"selector"
+                        {"type" "person"}}
+                       db-data :func (partial sort-by :name)))
 
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
