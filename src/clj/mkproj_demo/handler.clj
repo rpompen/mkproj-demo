@@ -1,6 +1,6 @@
 (ns mkproj-demo.handler
   (:require
-   [mkproj-demo.api                      :as api]
+   [mkproj-demo.api                :as api]
    [chord.http-kit                 :refer [wrap-websocket-handler]]
    [clojure.core.async             :refer [go <! >! put! close!]]
    [compojure.core                 :refer [defroutes GET POST]]
@@ -8,6 +8,8 @@
    [ring.middleware.defaults       :refer [wrap-defaults api-defaults]]
    [ring.middleware.resource       :refer [wrap-resource]]
    [ring.middleware.session        :refer [wrap-session]]
+   [ring.middleware.not-modified   :refer [wrap-not-modified]]
+   [ring.middleware.content-type   :refer [wrap-content-type]]
    [ring.middleware.session.cookie :refer [cookie-store]]
    [ring.util.response             :refer [content-type resource-response]]))
 
@@ -38,4 +40,7 @@
   (-> app-routes
       (wrap-session {:store (cookie-store {:key "a 16-byte secret"})})
       (wrap-defaults api-defaults)
-      (wrap-resource "public")))
+      (wrap-resource "public")
+      (wrap-resource "public")
+      (wrap-content-type)
+      (wrap-not-modified)))
