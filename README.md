@@ -73,4 +73,4 @@ http://clojurescript.org/
 http://hoplon.io/  
 https://github.com/jarohen/chord  
 
-©2019 Roel Pompen
+©2020 Roel Pompen
