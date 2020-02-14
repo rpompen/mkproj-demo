@@ -60,20 +60,44 @@
         (cb))))
 
 ;;; RETRIEVE
+;; Creates a closure for pagination state
 (defn query
-  "Fire Mango query to CouchDB.
-   JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
-   An optional funtion `:func` is applied to the result set."
-  [m cl & {func :func}]
-  (go
-    (let [result
-          (<! (http/post urlq {:json-params m}))]
-      (if (:success result)
-        (reset! cl (cond->> result
-                     true :body
-                     true :docs
-                     func func))
-        (reset! error (-> result :body))))))
+  "Build a Mango query to CouchDB as a closure retaining page state. JSON query `m` will be sent to DB.
+   Cell `cl` will contain result page. Cell `npg` will contain next available page number.
+   Default page size is 25.
+
+   The closure allows for previous pages to be requested, using `:page`.
+   No argument returns first or most recent page. Setting `:next-page` returns next available page.
+   Page list can be cleared by setting `:clear-pages` flag."
+  ([m cl npg] (query m cl 25))
+  ([m cl npg page-size]
+   (let [pages (cell [])
+         curpage (cell 0)] 
+     (fn redo [& {:keys [page clear-pages next-page]}]
+       (cond
+         clear-pages (do (reset! pages []) (redo))
+         :else (go
+                 (let [_ (when (some? page) (reset! curpage page))
+                       result (<! (http/post urlq {:json-params
+                                                   (merge (cond
+                                                            (and (some? page) (== 0 page)) m
+                                                            (and (some? page) clear-pages) m
+                                                            (some? page) (assoc m :bookmark (nth @pages (dec page)))
+                                                            (seq @pages) (assoc m :bookmark (nth @pages (dec @curpage)))
+                                                            :else m)
+                                                          {:limit page-size})}))
+                       next-page (-> result :body :bookmark)
+                       next-page-number (if (or (contains? (set @pages) next-page) (< (count (-> result :body :docs)) page-size))
+                                          (count @pages)
+                                          (inc (count @pages)))]
+                   (if (:success result)
+                     (do
+                       (when (and (== (count (-> result :body :docs)) page-size)
+                                  (not (contains? (set @pages) next-page)))
+                         (swap! pages conj next-page))
+                       (reset! cl (-> result :body :docs))
+                       (reset! npg next-page-number))
+                     (reset! error (:body result))))))))))
 
 ;;; UPDATE
 (defn doc-update
@@ -103,21 +127,23 @@
 (defonce state
   (cell {}))
 
-(defc= file-data (:file-data state) #(swap! state assoc :file-data %))
-(defc= db-data   (:db-data state)   #(swap! state assoc :db-data %))
+(defc= file-data   (:file-data   state) #(swap! state assoc :file-data %))
+(defc= people-page (:people-page state) #(swap! state assoc :people-page %))
+(defc people-page-next 0)
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
-(def get-file (partial launch-fn 'get-file file-data))
+(defn get-file [] (launch-fn 'get-file file-data))
 
 ;; Database
-;; Uses aggregate function to return hash-map, as required for state-merging
-(defn get-db [] (query {"selector"
-                        {"type" "person"}}
-                       db-data :func (partial sort-by :name)))
+(def people (query {"selector"
+                    {"type" "person"}}
+                   people-page people-page-next 4))
 
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
-                                  "age" age} get-db))
+                                  "age" age} #(people :clear-pages true)))
 
-(defn del-db [id] (doc-delete id get-db))
+(defn del-db [id] (doc-delete id #(people :clear-pages true)))
+
+(people)

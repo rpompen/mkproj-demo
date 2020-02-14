@@ -1,6 +1,6 @@
 (ns mkproj-demo.handler
   (:require
-   [mkproj-demo.api                :as api]
+   [mkproj-demo.api                      :as api]
    [chord.http-kit                 :refer [wrap-websocket-handler]]
    [clojure.core.async             :refer [go <! >! put! close!]]
    [compojure.core                 :refer [defroutes GET POST]]

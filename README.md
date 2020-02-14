@@ -14,7 +14,7 @@ This project shows several things:
 4. sample querying of CouchDB via REST interface
 5. initialized GIT repository
 6. one language for client (browser) and server code
-7. extreme low complexity (the Abstract Syntax Tree of the code contains less than 150 nodes!)
+7. extremely low complexity (the Abstract Syntax Tree of the code contains less than 150 nodes!)
 8. extreme small project size (±300 lines of code **and** project files, not counting README)
 9. package entire project into 1 file (.jar) to run everywhere
 10. backend is JVM with a web-server and code meant for the server
@@ -22,6 +22,7 @@ This project shows several things:
 12. JS code size while developing: less than 6MB
 13. JS code size after compiling for production: ±550KB
 14. segmented state map using lenses (reduces events and facilitates refactoring)
+15. paginated DB access
 
 ## how to develop
 
