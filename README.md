@@ -66,7 +66,7 @@ If you move the jar file, keep in mind that all paths are relative to the locati
 
 ## Check for outdated dependencies
 
-Run `clj -Auberjar` from the project directory.
+Run `clj -Aoutdated` from the project directory.
 A table of suggested updates (to be put in deps.edn) might be shown.
 
 ## Study material
