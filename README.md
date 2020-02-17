@@ -17,10 +17,10 @@ This project shows several things:
 7. extremely low complexity (the Abstract Syntax Tree of the code contains just over 160 nodes!)
 8. extreme small project size (±300 lines of code **and** project files, not counting README)
 9. package entire project into 1 file (.jar) to run everywhere
-10. backend is JVM with a web-server and code meant for the server
-11. front-end code is compiled to javascript and delivered via web-server
+10. backend is JVM with a web-server and server-side code
+11. front-end code is compiled to javascript and delivered via JVM web-server
 12. JS code size while developing: less than 6MB
-13. JS code size after compiling for production: ±550KB
+13. JS code size after compiling for production: ±550KB (less than 140KB gzipped)
 14. segmented state map using lenses (reduces events and facilitates refactoring)
 15. paginated DB access
 
@@ -48,7 +48,8 @@ This project shows several things:
 1. install CouchDB
 2. make database named `sample`
 3. create document with fields "type": "person", "name": "Jack", "age": 21
-4. enable CORS in settings
+4. create index (for sorting) on "name"
+5. enable CORS in settings
 
 ## compile for distribution
 
@@ -62,6 +63,11 @@ This project shows several things:
 
 There might be a few seconds delay to start.
 If you move the jar file, keep in mind that all paths are relative to the location from where you run, i.e. if the code opening `data/items.edn` is still there, you'll get an error.
+
+## Check for outdated dependencies
+
+Run `clj -Auberjar` from the project directory.
+A table of suggested updates (to be put in deps.edn) might be shown.
 
 ## Study material
 

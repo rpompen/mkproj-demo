@@ -67,37 +67,37 @@
    Default page size is 25.
 
    The closure allows for previous pages to be requested, using `:page`.
-   No argument returns first or most recent page. Setting `:next-page` returns next available page.
-   Page list can be cleared by setting `:clear-pages` flag."
-  ([m cl npg] (query m cl 25))
+   No argument returns first or most recent page. Page list can be cleared
+   by setting `:clear-pages` flag, to be used after modifying data."
+  ([m cl npg] (query m cl npg 25))
   ([m cl npg page-size]
    (let [pages (cell [])
          curpage (cell 0)] 
-     (fn redo [& {:keys [page clear-pages next-page]}]
-       (cond
-         clear-pages (do (reset! pages []) (redo))
-         :else (go
-                 (let [_ (when (some? page) (reset! curpage page))
-                       result (<! (http/post urlq {:json-params
-                                                   (merge (cond
-                                                            (and (some? page) (== 0 page)) m
-                                                            (and (some? page) clear-pages) m
-                                                            (some? page) (assoc m :bookmark (nth @pages (dec page)))
-                                                            (seq @pages) (assoc m :bookmark (nth @pages (dec @curpage)))
-                                                            :else m)
-                                                          {:limit page-size})}))
-                       next-page (-> result :body :bookmark)
-                       next-page-number (if (or (contains? (set @pages) next-page) (< (count (-> result :body :docs)) page-size))
-                                          (count @pages)
-                                          (inc (count @pages)))]
-                   (if (:success result)
-                     (do
-                       (when (and (== (count (-> result :body :docs)) page-size)
-                                  (not (contains? (set @pages) next-page)))
-                         (swap! pages conj next-page))
-                       (reset! cl (-> result :body :docs))
-                       (reset! npg next-page-number))
-                     (reset! error (:body result))))))))))
+     (fn redo [& {:keys [page clear-pages]}]
+       (if clear-pages
+         (do (reset! pages []) (redo))
+         (go
+           (let [_ (when (some? page) (reset! curpage page))
+                 result (<! (http/post urlq {:json-params
+                                             (merge (cond
+                                                      (and (some? page) (== 0 page)) m
+                                                      (and (some? page) clear-pages) m
+                                                      (some? page) (assoc m :bookmark (nth @pages (dec page)))
+                                                      (seq @pages) (assoc m :bookmark (nth @pages (dec @curpage)))
+                                                      :else m)
+                                                    {:limit page-size})}))
+                 next-page (-> result :body :bookmark)
+                 next-page-number (if (or (contains? (set @pages) next-page) (< (count (-> result :body :docs)) page-size))
+                                    (count @pages)
+                                    (inc (count @pages)))]
+             (if (:success result)
+               (do
+                 (when (and (== (count (-> result :body :docs)) page-size)
+                            (not (contains? (set @pages) next-page)))
+                   (swap! pages conj next-page))
+                 (reset! cl (-> result :body :docs))
+                 (reset! npg next-page-number))
+               (reset! error (:body result))))))))))
 
 ;;; UPDATE
 (defn doc-update
@@ -128,22 +128,23 @@
   (cell {}))
 
 (defc= file-data   (:file-data   state) #(swap! state assoc :file-data %))
-(defc= people-page (:people-page state) #(swap! state assoc :people-page %))
-(defc people-page-next 0)
+(defc= people (:people state) #(swap! state assoc :people %))
+(defc people-next 0)
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
 (defn get-file [] (launch-fn 'get-file file-data))
 
 ;; Database
-(def people (query {"selector"
-                    {"type" "person"}}
-                   people-page people-page-next 4))
+(def get-people (query {"selector"
+                        {"type" "person"}
+                        "sort" [{"name" "asc"}]}
+                       people people-next 4))
 
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
-                                  "age" age} #(people :clear-pages true)))
+                                  "age" age} #(get-people :clear-pages true)))
 
-(defn del-db [id] (doc-delete id #(people :clear-pages true)))
+(defn del-db [id] (doc-delete id #(get-people :clear-pages true)))
 
-(people)
+(get-people)

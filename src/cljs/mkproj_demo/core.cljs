@@ -13,13 +13,13 @@
        (button :type "button" :click #(rpc/get-file) "Get file")
        (p (text "~{rpc/file-data}"))
        "Gets items from CouchDB via REST interface. "
-       (for-tpl [p (cell= (range 1 (+ 2 rpc/people-page-next)))]
+       (for-tpl [p (cell= (range 1 (+ 2 rpc/people-next)))]
                 (button :type "button" 
-                        :click #(rpc/people :page (dec @p)) p))
+                        :click #(rpc/get-people :page (dec @p)) p))
        (form
         (fieldset
          (legend "People")
-         (for-tpl [{id :_id name :name age :age} rpc/people-page]
+         (for-tpl [{id :_id name :name age :age} rpc/people]
                   (div
                    (input :type "text" :value name :disabled true)
                    (input :type "text" :value age :disabled true)
