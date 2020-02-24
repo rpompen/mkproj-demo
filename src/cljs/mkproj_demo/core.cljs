@@ -12,13 +12,12 @@
        "Gets data from file via JVM backend. "
        (button :type "button" :click #(rpc/get-file) "Get file")
        (p (text "~{rpc/file-data}"))
-       "Gets items from CouchDB via REST interface. "
-       (for-tpl [p (cell= (range 1 (+ 2 rpc/people-next)))]
-                (button :type "button" 
-                        :click #(rpc/get-people :page (dec @p)) p))
+       (text "Gets items from CouchDB via REST interface. ~{(:curpage rpc/people-pages)}")
        (form
         (fieldset
-         (legend "People")
+         (legend "People " (for-tpl [[page data] (cell= (:bookmarks rpc/people-pages))]
+                                    (button :type "button"
+                                            :click #(rpc/get-people @page) page)))
          (for-tpl [{id :_id name :name age :age} rpc/people]
                   (div
                    (input :type "text" :value name :disabled true)

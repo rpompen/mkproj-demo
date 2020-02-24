@@ -60,44 +60,29 @@
         (cb))))
 
 ;;; RETRIEVE
-;; Creates a closure for pagination state
 (defn query
-  "Build a Mango query to CouchDB as a closure retaining page state. JSON query `m` will be sent to DB.
-   Cell `cl` will contain result page. Cell `npg` will contain next available page number.
-   Default page size is 25.
-
-   The closure allows for previous pages to be requested, using `:page`.
-   No argument returns first or most recent page. Page list can be cleared
-   by setting `:clear-pages` flag, to be used after modifying data."
-  ([m cl npg] (query m cl npg 25))
-  ([m cl npg page-size]
-   (let [pages (cell [])
-         curpage (cell 0)] 
-     (fn redo [& {:keys [page clear-pages]}]
-       (if clear-pages
-         (do (reset! pages []) (redo))
-         (go
-           (let [_ (when (some? page) (reset! curpage page))
-                 result (<! (http/post urlq {:json-params
-                                             (merge (cond
-                                                      (and (some? page) (== 0 page)) m
-                                                      (and (some? page) clear-pages) m
-                                                      (some? page) (assoc m :bookmark (nth @pages (dec page)))
-                                                      (seq @pages) (assoc m :bookmark (nth @pages (dec @curpage)))
-                                                      :else m)
-                                                    {:limit page-size})}))
-                 next-page (-> result :body :bookmark)
-                 next-page-number (if (or (contains? (set @pages) next-page) (< (count (-> result :body :docs)) page-size))
-                                    (count @pages)
-                                    (inc (count @pages)))]
-             (if (:success result)
-               (do
-                 (when (and (== (count (-> result :body :docs)) page-size)
-                            (not (contains? (set @pages) next-page)))
-                   (swap! pages conj next-page))
-                 (reset! cl (-> result :body :docs))
-                 (reset! npg next-page-number))
-               (reset! error (:body result))))))))))
+  "Fire Mango query to CouchDB.
+   JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
+   An optional funtion `:func` is applied to the result set."
+  [m cl & {:keys [func page-size page pages] :or {func identity page-size 25}}]
+  (go
+    (let [result
+          (<! (http/post urlq
+                         {:json-params
+                          (merge m {:limit page-size
+                                    :bookmark (if (or (nil? page)
+                                                      (= page 0)) nil
+                                                  (get-in @pages [:bookmarks page]))})}))
+          next-bookmark (-> result :body :bookmark)]
+      (when (nil? @pages) (reset! pages {:bookmarks {0 nil}}))
+      (if (:success result)
+        (do (reset! cl (-> result :body :docs func))
+            (when (and pages
+                       (not (-> @pages :bookmarks vals set (contains? next-bookmark))))
+              (swap! pages assoc-in [:bookmarks (inc page)]
+                     next-bookmark))
+            (swap! pages assoc :curpage (or page 0)))
+        (reset! error (:body result))))))
 
 ;;; UPDATE
 (defn doc-update
@@ -129,22 +114,33 @@
 
 (defc= file-data   (:file-data   state) #(swap! state assoc :file-data %))
 (defc= people (:people state) #(swap! state assoc :people %))
-(defc people-next 0)
+(defc  people-pages nil)
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
 (defn get-file [] (launch-fn 'get-file file-data))
 
 ;; Database
-(def get-people (query {"selector"
-                        {"type" "person"}
-                        "sort" [{"name" "asc"}]}
-                       people people-next 4))
+
+(defn get-people
+  [& [page]]
+  (query {"selector"
+          {"type" "person"}
+          "sort" [{"name" "asc"}]}
+         people
+         :func (partial sort-by :name)
+         :page-size 4
+         :pages people-pages
+         :page  page))
 
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
-                                  "age" age} #(get-people :clear-pages true)))
+                                  "age" age} (fn []
+                                               (reset! people-pages nil)
+                                               (js/setTimeout get-people 500))))
 
-(defn del-db [id] (doc-delete id #(get-people :clear-pages true)))
+(defn del-db [id] (doc-delete id (fn []
+                                   (reset! people-pages nil)
+                                   (js/setTimeout get-people 500))))
 
 (get-people)
