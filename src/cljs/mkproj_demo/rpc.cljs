@@ -3,7 +3,7 @@
    [javelin.core :refer [defc defc= cell=]]
    [cljs.core.async.macros :refer [go go-loop]])
   (:require
-   [mkproj-demo.shared :refer [port]]
+   [mkproj-demo.shared :refer [port server]]
    [javelin.core :refer [cell cell-let dosync]]
    [cljs-http.client :as http]
    [chord.client :refer [ws-ch]]
@@ -27,7 +27,7 @@
   "Launches RPC call for `f` in backend. Return value goes into cell."
   [f cl & args]
   (go
-    (let [{:keys [ws-channel error]} (<! (ws-ch (str "ws://localhost:" port "/ws")
+    (let [{:keys [ws-channel error]} (<! (ws-ch (str "ws://" server ":" port "/ws")
                                                 {:format :transit-json}))]
       (if error
         (js/console.log "Error:" (pr-str error))
