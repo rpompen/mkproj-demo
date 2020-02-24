@@ -3,16 +3,13 @@
    [javelin.core :refer [defc defc= cell=]]
    [cljs.core.async.macros :refer [go go-loop]])
   (:require
-   [mkproj-demo.shared :refer [port server]]
+   [mkproj-demo.shared :refer [port server db-port db-server db-name]]
    [javelin.core :refer [cell cell-let dosync]]
    [cljs-http.client :as http]
    [chord.client :refer [ws-ch]]
    [cljs.core.async :refer [<! >! put! chan close!]]))
 
 ;; CouchDB connection
-(def db-server "127.0.0.1")
-(def db-port 5984)
-(def db-name "sample")
 (def urls (str "http://" db-server ":" db-port "/"))
 (def urld (str urls db-name))
 (def urlq (str urld "/_find"))
@@ -62,9 +59,11 @@
 ;;; RETRIEVE
 (defn query
   "Fire Mango query to CouchDB.
-   JSON query `m` will be sent to DB. Result gets merged into cell `cl`.
-   An optional funtion `:func` is applied to the result set."
-  [m cl & {:keys [func page-size page pages] :or {func identity page-size 25}}]
+   JSON query `m` will be sent to DB. Result gets sent to cell `cl`.
+   An optional funtion `:func` is applied to the result set.
+   `page` is the page number to get. `pages` is a hash-map containing result.
+   Initialize that map as nil."
+  [m cl & {:keys [func page-size page pages] :or {func identity page-size 25 pages (cell :none)}}]
   (go
     (let [result
           (<! (http/post urlq
@@ -74,14 +73,14 @@
                                                       (= page 0)) nil
                                                   (get-in @pages [:bookmarks page]))})}))
           next-bookmark (-> result :body :bookmark)]
-      (when (nil? @pages) (reset! pages {:bookmarks {0 nil}}))
+      (when (= @pages {}) (reset! pages {:bookmarks {0 nil}}))
       (if (:success result)
         (do (reset! cl (-> result :body :docs func))
-            (when (and pages
+            (when (and (not= @pages :none)
                        (not (-> @pages :bookmarks vals set (contains? next-bookmark))))
               (swap! pages assoc-in [:bookmarks (inc page)]
                      next-bookmark))
-            (swap! pages assoc :curpage (or page 0)))
+            (when (not= @pages :none) (swap! pages assoc :curpage (or page 0))))
         (reset! error (:body result))))))
 
 ;;; UPDATE
