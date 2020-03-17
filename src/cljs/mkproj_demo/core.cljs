@@ -17,7 +17,7 @@
         (fieldset
          (legend "People " (for-tpl [[page data] (cell= (:bookmarks rpc/people-pages))]
                                     (button :type "button"
-                                            :click #(rpc/get-people @page) page)))
+                                            :click #(rpc/get-people @page) (cell= (inc page)))))
          (for-tpl [{id :_id name :name age :age} rpc/people]
                   (div
                    (input :type "text" :value name :disabled true)

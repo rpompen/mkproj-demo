@@ -61,7 +61,7 @@
   "Fire Mango query to CouchDB.
    JSON query `m` will be sent to DB. Result gets sent to cell `cl`.
    An optional funtion `:func` is applied to the result set.
-   `page` is the page number to get. `pages` is a hash-map containing result.
+   `page` is the page number to get. `pages` is a hash-map containing bookmarks.
    Initialize that map as nil."
   [m cl & {:keys [func page-size page pages] :or {func identity page-size 25 pages (cell :none)}}]
   (go
@@ -113,7 +113,7 @@
 
 (defc= file-data   (:file-data   state) #(swap! state assoc :file-data %))
 (defc= people (:people state) #(swap! state assoc :people %))
-(defc  people-pages nil)
+(defc  people-pages {:bookmarks {0 nil}})
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
@@ -135,11 +135,11 @@
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
                                   "age" age} (fn []
-                                               (reset! people-pages nil)
+                                               (reset! people-pages {:bookmarks {0 nil}})
                                                (js/setTimeout get-people 500))))
 
 (defn del-db [id] (doc-delete id (fn []
-                                   (reset! people-pages nil)
+                                   (reset! people-pages {:bookmarks {0 nil}})
                                    (js/setTimeout get-people 500))))
 
 (get-people)
