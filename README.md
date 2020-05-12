@@ -56,9 +56,10 @@ This project shows several things:
 1. close VS code
 2. in project directory run `clj -Aoptimal`
 3. delete extraneous files: `rm -rf target/public/cljs-out/dev`
-4. package with `clj -Auberjar`
-5. run with `java -cp target/mkproj-demo.jar clojure.main -m mkproj-demo.core`
-6. open browser to http://localhost:8000/ and refresh if page not loading
+4. generate pom.xml with `clj -Spom`
+5. package with `clj -Auberjar`
+6. run with `java -cp target/mkproj-demo.jar clojure.main -m mkproj-demo.core`
+7. open browser to http://localhost:8000/ and refresh if page not loading
 
 
 There might be a few seconds delay to start.
