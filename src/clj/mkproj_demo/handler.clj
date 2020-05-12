@@ -1,9 +1,9 @@
 (ns mkproj-demo.handler
   (:require
-   [mkproj-demo.api                      :as api]
+   [mkproj-demo.api                :as api]
    [chord.http-kit                 :refer [wrap-websocket-handler]]
-   [clojure.core.async             :refer [go <! >! put! close!]]
-   [compojure.core                 :refer [defroutes GET POST]]
+   [clojure.core.async             :refer [go <! >!]]
+   [compojure.core                 :refer [defroutes GET]]
    [compojure.route                :refer [resources not-found]]
    [ring.middleware.defaults       :refer [wrap-defaults api-defaults]]
    [ring.middleware.resource       :refer [wrap-resource]]
@@ -15,7 +15,7 @@
 
 (defn castra
   "Receives RPC request and calls it in api namespace."
-  [{:keys [ws-channel] :as req}]
+  [{:keys [ws-channel]}]
   (go
     (let [{:keys [message error]} (<! ws-channel)
           {:keys [type f args]} message
@@ -38,7 +38,7 @@
 
 (def app
   (-> app-routes
-      (wrap-session {:store (cookie-store {:key "a 16-byte secret"})})
+      (wrap-session {:store (cookie-store {:key (byte-array (map int "a 16-byte secret"))})})
       (wrap-defaults api-defaults)
       (wrap-resource "public")
       (wrap-content-type)

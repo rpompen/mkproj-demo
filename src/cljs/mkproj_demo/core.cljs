@@ -1,9 +1,7 @@
 (ns mkproj-demo.core
-  (:require [hoplon.core :as h :refer [defelem div h1 br p text pre input
-                                       button label ul li nav form with-init!
-                                       with-timeout if-tpl for-tpl strong
-                                       case-tpl span a small fieldset legend]]
-            [javelin.core :as j :refer [cell cell= defc defc= cell-let dosync]]
+  (:require [hoplon.core :as h :refer [defelem div h1 p text input
+                                       button form for-tpl fieldset legend]]
+            [javelin.core :as j :refer [cell cell=]]
             [mkproj-demo.rpc :as rpc]))
 
 (defelem main [_ _]

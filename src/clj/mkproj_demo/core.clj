@@ -14,6 +14,4 @@
   [port]
   (swap! server #(or % (app port))))
 
-(defn -main
-  [& args]
-  (start-server port))
+(defn -main [] (start-server port))

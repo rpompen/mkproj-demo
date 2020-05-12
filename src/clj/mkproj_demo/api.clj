@@ -1,4 +1,5 @@
-(ns mkproj-demo.api)
+(ns mkproj-demo.api
+  (:require [clojure.edn :as edn]))
 
 (defn get-file []
-  (clojure.edn/read-string (slurp "data/items.edn")))
+  (edn/read-string (slurp "data/items.edn")))

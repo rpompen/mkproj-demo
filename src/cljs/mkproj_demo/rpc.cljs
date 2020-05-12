@@ -1,13 +1,13 @@
 (ns mkproj-demo.rpc
   (:require-macros
-   [javelin.core :refer [defc defc= cell=]]
-   [cljs.core.async.macros :refer [go go-loop]])
+   [javelin.core :refer [defc defc=]]
+   [cljs.core.async.macros :refer [go]])
   (:require
    [mkproj-demo.shared :refer [port server db-port db-server db-name]]
-   [javelin.core :refer [cell cell-let dosync]]
+   [javelin.core :refer [cell]]
    [cljs-http.client :as http]
    [chord.client :refer [ws-ch]]
-   [cljs.core.async :refer [<! >! put! chan close!]]))
+   [cljs.core.async :refer [<! >! close!]]))
 
 ;; CouchDB connection
 (def urls (str "http://" db-server ":" db-port "/"))
