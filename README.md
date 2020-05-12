@@ -58,8 +58,8 @@ This project shows several things:
 3. delete extraneous files: `rm -rf target/public/cljs-out/dev`
 4. generate pom.xml with `clj -Spom`
 5. package with `clj -Auberjar`
-6. run with `java -cp target/mkproj-demo.jar clojure.main -m mkproj-demo.core`
-7. open browser to http://localhost:8000/ and refresh if page not loading
+6. run with `java -jar target/mkproj-demo.jar`
+7. open browser to http://yourhost:8000/ and refresh if page not loading
 
 
 There might be a few seconds delay to start.
