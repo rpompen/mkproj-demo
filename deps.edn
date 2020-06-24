@@ -4,6 +4,7 @@
         compojure {:mvn/version "1.6.1"}
         cljs-http {:mvn/version "0.1.46"}
         ring {:mvn/version "1.8.1"}
+        ring-cors {:mvn/version "0.1.13"}
         ring/ring-defaults {:mvn/version "0.3.2"}
         jarohen/chord {:mvn/version "0.8.1"}
         javax.xml.bind/jaxb-api {:mvn/version "2.4.0-b180830.0359"}}

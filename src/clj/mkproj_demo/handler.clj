@@ -1,6 +1,7 @@
 (ns mkproj-demo.handler
   (:require
    [mkproj-demo.api                :as api]
+   [mkproj-demo.shared             :refer [server port]]
    [chord.http-kit                 :refer [wrap-websocket-handler]]
    [clojure.core.async             :refer [go <! >!]]
    [compojure.core                 :refer [defroutes GET]]
@@ -11,7 +12,8 @@
    [ring.middleware.not-modified   :refer [wrap-not-modified]]
    [ring.middleware.content-type   :refer [wrap-content-type]]
    [ring.middleware.session.cookie :refer [cookie-store]]
-   [ring.util.response             :refer [content-type resource-response]]))
+   [ring.util.response             :refer [content-type resource-response]]
+   [ring.middleware.cors           :refer [wrap-cors]]))
 
 (defn castra
   "Receives RPC request and calls it in api namespace."
@@ -41,5 +43,7 @@
       (wrap-session {:store (cookie-store {:key (byte-array (map int "a 16-byte secret"))})})
       (wrap-defaults api-defaults)
       (wrap-resource "public")
+      (wrap-cors :access-control-allow-origin (re-pattern (str "http://" server ":" port "/.*"))
+                 :access-control-allow-methods [:get :put :post :delete])
       (wrap-content-type)
       (wrap-not-modified)))
