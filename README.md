@@ -15,7 +15,7 @@ This project shows several things:
 5. initialized GIT repository
 6. one language for client (browser) and server code
 7. extremely low complexity (the Abstract Syntax Tree of the code contains just under 170 nodes!)
-8. extreme small project size (±300 lines of code **and** project files, not counting README)
+8. extremely small project size (±300 lines of code **and** project files, not counting README)
 9. package entire project into 1 file (.jar) to run everywhere
 10. backend is JVM with a web-server and server-side code
 11. front-end code is compiled to javascript and delivered via JVM web-server

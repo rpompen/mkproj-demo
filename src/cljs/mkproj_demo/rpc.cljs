@@ -95,7 +95,7 @@
                                                db-auth)))
                     :body :docs first)
             result (-> (<! (http/put (str urld "/" id)
-                                     {:json-params (merge old m)})))]
+                                     (merge {:json-params (merge old m)} db-auth))))]
         (when-not (:success result)
           (reset! error (:body result)))
         (cb))))

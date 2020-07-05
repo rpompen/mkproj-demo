@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]))
 
 (defmacro defrpc [f args body]
-  `(let [e# nil] 
+  `(let [e# nil]
      (defn ~f ~args (try ~body (catch Exception e# {:castraexpt (ex-message e#)})))))
 
 (defrpc get-file []
