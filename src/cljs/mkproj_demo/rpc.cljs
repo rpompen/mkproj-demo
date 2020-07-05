@@ -30,7 +30,10 @@
         (js/console.log "Error:" (pr-str error))
         (do
           (>! ws-channel {:type :rpc :f f :args args})
-          (reset! cl (:message (<! ws-channel)))))
+          (let [msg (:message (<! ws-channel))]
+            (cond (= msg :castranil) (reset! cl nil)
+                  (some? (:castraexpt msg)) (reset! mkproj-demo.rpc/error (:castraexpt msg))
+                  :else (reset! cl msg)))))
       (close! ws-channel))))
 
 ;;; UUID generator of CouchDB
@@ -51,7 +54,7 @@
   [m cb]
   (go (let [uuid (-> (<! (http/get (str urls "/_uuids"))) :body :uuids first)
             result (<! (http/put (str urld "/" uuid)
-                                 {:json-params m}))]
+                                 (merge {:json-params m} db-auth)))]
         (when-not (:success result)
           (reset! error (:body result)))
         (cb))))
@@ -67,11 +70,12 @@
   (go
     (let [result
           (<! (http/post urlq
-                         {:json-params
-                          (merge m {:limit page-size
-                                    :bookmark (if (or (nil? page)
-                                                      (= page 0)) nil
-                                                  (get-in @pages [:bookmarks page]))})}))
+                         (merge {:json-params
+                                 (merge m {:limit page-size
+                                           :bookmark (if (or (nil? page)
+                                                             (= page 0)) nil
+                                                         (get-in @pages [:bookmarks page]))})}
+                                db-auth)))
           next-bookmark (-> result :body :bookmark)]
       (when (= @pages {}) (reset! pages {:bookmarks {0 nil}}))
       (if (:success result)
@@ -87,7 +91,8 @@
 (defn doc-update
   "Update document in CouchDB and run callback for refresh."
   [id m cb]
-  (go (let [old (-> (<! (http/post urlq {:json-params {"selector" {"_id" id}}}))
+  (go (let [old (-> (<! (http/post urlq (merge {:json-params {"selector" {"_id" id}}}
+                                               db-auth)))
                     :body :docs first)
             result (-> (<! (http/put (str urld "/" id)
                                      {:json-params (merge old m)})))]
@@ -99,7 +104,8 @@
 (defn doc-delete
   "Delete document in CouchDB and run callback for refresh."
   [id cb]
-  (go (let [rev (-> (<! (http/post urlq {:json-params {"selector" {"_id" id}}}))
+  (go (let [rev (-> (<! (http/post urlq (merge {:json-params {"selector" {"_id" id}}}
+                                               db-auth)))
                     :body :docs first :_rev)
             result (<! (http/delete (str urld "/" id "?rev=" rev)))]
         (when-not (:success result)

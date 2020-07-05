@@ -20,12 +20,11 @@
   [{:keys [ws-channel]}]
   (go
     (let [{:keys [message error]} (<! ws-channel)
-          {:keys [type f args]} message
-          result (apply (ns-resolve 'mkproj-demo.api f) args)]
+          {:keys [type f args]} message]
       (if error
         (println "Error ocurred:" error)
         (if (= type :rpc)
-          (>! ws-channel result)
+          (>! ws-channel (or (apply (ns-resolve 'mkproj-demo.api f) args) :castranil))
           (>! ws-channel "Hello client from server!"))))))
 
 (defroutes app-routes
