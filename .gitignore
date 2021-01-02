@@ -2,3 +2,6 @@ target/
 .cpcache/
 .nrepl*
 pom.xml
+.lsp/
+.clj-kondo/
+.calva/
