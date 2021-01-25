@@ -54,10 +54,10 @@ This project shows several things:
 ## compile for distribution
 
 1. close VS code
-2. in project directory run `clj -Aoptimal`
+2. in project directory run `clj -M:optimal`
 3. delete extraneous files: `rm -rf target/public/cljs-out/dev`
 4. generate pom.xml with `clj -Spom`
-5. package with `clj -Auberjar`
+5. package with `clj -X:uberjar`
 6. run with `java -jar target/mkproj-demo.jar`
 7. open browser to http://yourhost:8000/ and refresh if page not loading
 
@@ -67,7 +67,7 @@ If you move the jar file, keep in mind that all paths are relative to the locati
 
 ## Check for outdated dependencies
 
-Run `clj -Aoutdated` from the project directory.
+Run `clj -M:outdated` from the project directory.
 A table of suggested updates (to be put in deps.edn) might be shown.
 
 ## Study material
