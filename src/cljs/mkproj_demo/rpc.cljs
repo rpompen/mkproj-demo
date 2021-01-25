@@ -77,7 +77,7 @@
                                                          (get-in @pages [:bookmarks page]))})}
                                 db-auth)))
           next-bookmark (-> result :body :bookmark)]
-      (when (= @pages {}) (reset! pages {:bookmarks {0 nil}}))
+      (when (empty? @pages) (reset! pages {:bookmarks {0 nil}}))
       (if (:success result)
         (do (reset! cl (-> result :body :docs func))
             (when (and (not= @pages :none)

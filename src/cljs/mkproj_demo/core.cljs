@@ -10,7 +10,7 @@
        "Gets data from file via JVM backend. "
        (button :type "button" :click #(rpc/get-file) "Get file")
        (p (text "~{rpc/file-data}"))
-       (text "Gets items from CouchDB via REST interface. ~{(:curpage rpc/people-pages)}")
+       (text "Gets items from CouchDB via REST interface, page ~{(inc (:curpage rpc/people-pages))}")
        (form
         (fieldset
          (legend "People " (for-tpl [[page data] (cell= (:bookmarks rpc/people-pages))]
