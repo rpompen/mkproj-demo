@@ -107,7 +107,7 @@
   (go (let [rev (-> (<! (http/post urlq (merge {:json-params {"selector" {"_id" id}}}
                                                db-auth)))
                     :body :docs first :_rev)
-            result (<! (http/delete (str urld "/" id "?rev=" rev)))]
+            result (<! (http/delete (str urld "/" id "?rev=" rev) db-auth))]
         (when-not (:success result)
           (reset! error (:body result)))
         (cb))))
@@ -119,7 +119,7 @@
 
 (defc= file-data   (:file-data   state) #(swap! state assoc :file-data %))
 (defc= people (:people state) #(swap! state assoc :people %))
-(defc  people-pages {:bookmarks {0 nil}})
+(defc  people-pages {})
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
@@ -140,12 +140,13 @@
 
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
-                                  "age" age} (fn []
-                                               (reset! people-pages {:bookmarks {0 nil}})
-                                               (js/setTimeout get-people 500))))
+                                  "age" age}
+                                 (fn []
+                                   (reset! people-pages {})
+                                   (js/setTimeout get-people 500))))
 
 (defn del-db [id] (doc-delete id (fn []
-                                   (reset! people-pages {:bookmarks {0 nil}})
+                                   (reset! people-pages {})
                                    (js/setTimeout get-people 500))))
 
 (get-people)

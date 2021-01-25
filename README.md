@@ -56,7 +56,7 @@ This project shows several things:
 1. close VS code
 2. in project directory run `clj -M:optimal`
 3. delete extraneous files: `rm -rf target/public/cljs-out/dev`
-4. generate pom.xml with `clj -Spom`
+4. generate pom.xml with `clj -S:pom`
 5. package with `clj -X:uberjar`
 6. run with `java -jar target/mkproj-demo.jar`
 7. open browser to http://yourhost:8000/ and refresh if page not loading
@@ -80,4 +80,4 @@ http://clojurescript.org/
 http://hoplon.io/  
 https://github.com/jarohen/chord  
 
-©2020 Roel Pompen
+©2021 Roel Pompen
