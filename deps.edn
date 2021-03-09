@@ -1,5 +1,5 @@
 {:deps {hoplon/hoplon {:mvn/version "7.2.0"}
-        org.clojure/clojure {:mvn/version "1.10.2"}
+        org.clojure/clojure {:mvn/version "1.10.3"}
         org.clojure/clojurescript {:mvn/version "1.10.773"}
         compojure/compojure {:mvn/version "1.6.2"}
         cljs-http/cljs-http {:mvn/version "0.1.46"}

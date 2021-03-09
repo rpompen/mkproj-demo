@@ -66,7 +66,7 @@
    An optional funtion `:func` is applied to the result set.
    `page` is the page number to get. `pages` is a hash-map containing bookmarks.
    Initialize that map as nil."
-  [m cl & {:keys [func page-size page pages] :or {func identity page-size 25 pages (cell :none)}}]
+  [m cl & {:keys [func page-size page pages] :or {func identity, page-size 25, pages (cell :none)}}]
   (go
     (let [result
           (<! (http/post urlq
@@ -117,9 +117,9 @@
 (defonce state
   (cell {}))
 
-(defc= file-data   (:file-data   state) #(swap! state assoc :file-data %))
-(defc= people (:people state) #(swap! state assoc :people %))
-(defc  people-pages {})
+(defc= file-data (get-in state [:io :file-data]) #(swap! state assoc-in [:io :file-data] %))
+(defc= people (get-in state [:io :people]) #(swap! state assoc-in [:io :people] %))
+(defc= people-pages (get-in state [:ui :people-pages]) #(swap! state assoc-in [:ui :people-pages] %))
 
 ;; RPC to backend
 ;; Cell data is overwritten, not merged
@@ -133,7 +133,6 @@
           {"type" "person"}
           "sort" [{"name" "asc"}]}
          people
-         :func (partial sort-by :name)
          :page-size 4
          :pages people-pages
          :page  page))
