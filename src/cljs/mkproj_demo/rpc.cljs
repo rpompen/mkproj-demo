@@ -32,7 +32,7 @@
           (>! ws-channel {:type :rpc :f f :args args})
           (let [msg (:message (<! ws-channel))]
             (cond (= msg :castranil) (reset! cl nil)
-                  (some? (:castraexpt msg)) (reset! mkproj-demo.rpc/error (:castraexpt msg))
+                  (some? (:castraexpt msg)) (reset! error (:castraexpt msg))
                   :else (reset! cl msg)))))
       (close! ws-channel))))
 
