@@ -14,13 +14,13 @@ This project shows several things:
 4. sample querying of CouchDB via REST interface
 5. initialized GIT repository
 6. one language for client (browser) and server code
-7. extremely low complexity (the Abstract Syntax Tree of the code contains just under 170 nodes!)
-8. extremely small project size (±320 lines of code **and** project files, not counting README)
+7. extremely low complexity (the Abstract Syntax Tree of the code contains just under 165 nodes!)
+8. extremely small project size (±305 lines of code **and** project files, not counting README)
 9. package entire project into 1 file (.jar) to run everywhere
 10. backend is JVM with a web-server and server-side code
 11. front-end code is compiled to javascript and delivered via JVM web-server
-12. JS code size while developing: less than 6MB
-13. JS code size after compiling for production: ±550KB (less than 140KB gzipped)
+12. JS code size while developing: less than 5MB
+13. JS code size after compiling for production: ±540KB (less than 140KB gzipped)
 14. segmented state map using lenses (reduces events and facilitates refactoring)
 15. paginated DB access
 
@@ -34,7 +34,7 @@ This project shows several things:
 6. open this project (obviously)
 7. open your standard browser **first**
 8. **then** start project with `ctrl-alt-c ctrl-alt-j`
-9. select `Clojure CLI + Figwheel-main`, then `:fig` option in next dialogue  
+9. select `deps.edn + Figwheel-main`, then `:fig` option in next dialogue  
 9a. the running browser will show the app
 10. change browser URL from port 9500 to 8000; nothing will show up
 11. open `src/clj/mkproj-demo/core.clj` and click in window
