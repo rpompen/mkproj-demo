@@ -80,4 +80,4 @@ http://clojurescript.org/
 http://hoplon.io/  
 https://github.com/jarohen/chord  
 
-©2021 Roel Pompen
+©2022 Roel Pompen
