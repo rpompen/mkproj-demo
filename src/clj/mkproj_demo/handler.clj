@@ -1,7 +1,7 @@
 (ns mkproj-demo.handler
   (:require
    [mkproj-demo.api                :as api]
-   [mkproj-demo.shared             :refer [server port]]
+   [mkproj-demo.shared             :refer [server port secure?]]
    [chord.http-kit                 :refer [wrap-websocket-handler]]
    [clojure.core.async             :refer [go <! >!]]
    [compojure.core                 :refer [defroutes GET]]
@@ -42,7 +42,7 @@
       (wrap-session {:store (cookie-store {:key (byte-array (map int "a 16-byte secret"))})})
       (wrap-defaults api-defaults)
       (wrap-resource "public")
-      (wrap-cors :access-control-allow-origin (re-pattern (str "http://" server ":" port "/.*"))
+      (wrap-cors :access-control-allow-origin (re-pattern (str "https://" server "/"))
                  :access-control-allow-methods [:get :put :post :delete])
       (wrap-content-type)
       (wrap-not-modified)))

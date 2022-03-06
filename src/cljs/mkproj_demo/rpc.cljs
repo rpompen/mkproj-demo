@@ -3,19 +3,72 @@
    [javelin.core :refer [defc defc=]]
    [cljs.core.async.macros :refer [go]])
   (:require
-   [mkproj-demo.shared :refer [port server db-port db-server db-name]]
+   [mkproj-demo.shared :refer [port server db-port db-server db-name secure?]]
    [javelin.core :refer [cell]]
    [cljs-http.client :as http]
+   [cljs-http.core :as hc]
    [chord.client :refer [ws-ch]]
-   [cljs.core.async :refer [<! >! close!]]))
+   [clojure.string :as s]
+   [cemerick.url :refer [url url-encode]]
+   [cljs.core.async :refer [<! >! close!] :as async]))
 
 ;; CouchDB connection
-(def urls (str "http://" db-server ":" db-port "/"))
+(def urls (str "http" (when secure? \s) "://" db-server ":" db-port "/"))
 (def urld (str urls db-name))
 (def urlq (str urld "/_find"))
 ;; Merge with :json-params for authentication
 (def db-auth {:basic-auth {:username "admin"
                            :password "Cl0jure!"}})
+
+;; patch cljs-http to not mangle JSON
+(defn json-decode-raw
+  "JSON decode an object from `s`."
+  [s]
+  (let [v (when-not (s/blank? s) (js/JSON.parse s))]
+    (when (some? v)
+      (js->clj v))))
+
+(defn wrap-json-response
+  "Decode application/json responses."
+  [client]
+  (fn [request]
+    (-> #(http/decode-body % json-decode-raw "application/json" (:request-method request))
+        (async/map [(client request)]))))
+
+(def request (-> hc/request
+                 http/wrap-accept
+                 http/wrap-form-params
+                 http/wrap-multipart-params
+                 http/wrap-edn-params
+                 http/wrap-edn-response
+                 http/wrap-transit-params
+                 http/wrap-transit-response
+                 http/wrap-json-params
+                 wrap-json-response
+                 http/wrap-content-type
+                 http/wrap-query-params
+                 http/wrap-basic-auth
+                 http/wrap-oauth
+                 http/wrap-method
+                 http/wrap-url
+                 http/wrap-channel-from-request-map
+                 http/wrap-default-headers))
+
+(defn qpost
+  "Like #'request, but sets the :method and :url as appropriate."
+  [url & [req]]
+  (request (merge req {:method :post :url url})))
+
+
+(defn qput
+  "Like #'request, but sets the :method and :url as appropriate."
+  [url & [req]]
+  (request (merge req {:method :put :url url})))
+
+(defn qget
+  "Like #'request, but sets the :method and :url as appropriate."
+  [url & [req]]
+  (request (merge req {:method :get :url url})))
 
 ;; RPC launcher
 (defc error nil)
@@ -24,7 +77,7 @@
   "Launches RPC call for `f` in backend. Return value goes into cell."
   [f cl & args]
   (go
-    (let [{:keys [ws-channel error]} (<! (ws-ch (str "ws://" server ":" port "/ws")
+    (let [{:keys [ws-channel error]} (<! (ws-ch (str "ws" (when secure? \s) "://" server (when-not secure? (str ":" port)) "/ws")
                                                 {:format :transit-json}))]
       (if error
         (js/console.log "Error:" (pr-str error))
@@ -36,6 +89,12 @@
                   :else (reset! cl msg)))))
       (close! ws-channel))))
 
+(defn fieldupdate []
+  (doseq [elem (.getElementsByClassName js/document "tewissen")]
+    (set! (.-value elem) (.-defaultValue elem)))
+  (doseq [elem (.getElementsByTagName js/document "textarea")]
+    (set! (.-value elem) (.-defaultValue elem))))
+
 ;;; UUID generator of CouchDB
 (defc uuids nil)
 
@@ -43,7 +102,7 @@
   "Returns `n` or 1 UUIDs in a vector."
   [& n]
   (go (let [result
-            (<! (http/get (str "http://" db-server ":" db-port "/_uuids"
+            (<! (qget (str "http" (when secure? \s) "://" db-server ":" db-port "/_uuids"
                                (when (some? n) (str "?count=" (first n))))))]
         (reset! uuids (:uuids (:body result))))))
 
@@ -52,8 +111,8 @@
 (defn doc-add
   "Add document to CouchDB and run callback for refresh."
   [m cb]
-  (go (let [uuid (-> (<! (http/get (str urls "/_uuids"))) :body :uuids first)
-            result (<! (http/put (str urld "/" uuid)
+  (go (let [uuid (-> (<! (qget (str urls "/_uuids"))) :body (get "uuids") first)
+            result (<! (qput (str urld "/" uuid)
                                  (merge {:json-params m} db-auth)))]
         (when-not (:success result)
           (reset! error (:body result)))
@@ -69,44 +128,84 @@
   [m cl & {:keys [func page-size page pages] :or {func identity, page-size 25, pages (cell :none)}}]
   (go
     (let [result
-          (<! (http/post urlq
+          (<! (qpost urlq
                          (merge {:json-params
                                  (merge m {:limit page-size
                                            :bookmark (if (or (nil? page)
                                                              (= page 0)) nil
                                                          (get-in @pages [:bookmarks page]))})}
                                 db-auth)))
-          next-bookmark (-> result :body :bookmark)]
+          next-bookmark (-> result :body (get "bookmark"))]
       (when (or (= @pages :none) (empty? @pages)) (reset! pages {:bookmarks {0 nil}}))
       (if (:success result)
-        (do (reset! cl (-> result :body :docs func))
+        (do (reset! cl (-> result :body (get "docs") func))
             (when (and (not= @pages :none)
                        (not (-> @pages :bookmarks vals set (contains? next-bookmark))))
               (swap! pages assoc-in [:bookmarks (inc page)]
                      next-bookmark))
             (when (not= @pages :none) (swap! pages assoc :curpage (or page 0))))
-        (reset! error (:body result))))))
+        (reset! error (:body result)))
+      (fieldupdate))))
 
 ;;; UPDATE
 (defn doc-update
   "Update document in CouchDB and run callback for refresh."
   [id m cb]
-  (go (let [old (-> (<! (http/post urlq (merge {:json-params {"selector" {"_id" id}}}
+  (go (let [old (-> (<! (qpost urlq (merge {:json-params {"selector" {"_id" id}}}
                                                db-auth)))
-                    :body :docs first)
-            result (-> (<! (http/put (str urld "/" id)
+                    :body (get "docs") first)
+            result (-> (<! (qput (str urld "/" id)
                                      (merge {:json-params (merge old m)} db-auth))))]
         (when-not (:success result)
           (reset! error (:body result)))
         (cb))))
 
+;;; ATTACHMENT
+(defn doc-attach
+  "Attach file to document in CouchDB and run callback for refresh."
+  [id f fname & meta-info]
+  (go (let [old (-> (<! (qpost urlq (merge {:json-params {:selector {"_id" id}}}
+                                           db-auth)))
+                    :body (get "docs") first)
+            rev (get old "_rev")
+            meta-old (get old "meta")
+            meta-new (assoc meta-old fname (first meta-info))
+            result (-> (<! (qput (str urld "/" id "/" (url-encode fname) "?rev=" rev)
+                                 (merge {:multipart-params [[fname f]]} db-auth))))]
+        (if (:success result)
+          (doc-update id {"meta" meta-new} identity)
+          (reset! error (:body result))))))
+
+(defn doc-del-attach
+  "Delete attachment"
+  [id fname]
+  (go (let [old (-> (<! (qpost urlq (merge {:json-params {:selector {"_id" id}}}
+                                           db-auth)))
+                    :body (get "docs") first)
+            rev (get old "_rev")
+            meta-old (get old "meta")
+            meta-new (dissoc meta-old fname)
+            result (<! (http/delete (str urld "/" id "/" (url-encode fname))
+                                    (merge {:query-params {"rev" rev}} db-auth)))]
+        (if (:success result)
+          (doc-update id {"meta" meta-new} identity)
+          (reset! error (:body result))))))
+
+(defn doc-list-attach
+  "List attachments"
+  [id cl]
+  (go (let [result (-> (<! (qpost urlq (merge {:json-params {:selector {"_id" id}}}
+                                              db-auth)))
+                       :body (get "docs") first (get "_attachments") keys vec)]
+        (reset! cl result))))
+
 ;;; DELETE
 (defn doc-delete
   "Delete document in CouchDB and run callback for refresh."
   [id cb]
-  (go (let [rev (-> (<! (http/post urlq (merge {:json-params {"selector" {"_id" id}}}
+  (go (let [rev (-> (<! (qpost urlq (merge {:json-params {"selector" {"_id" id}}}
                                                db-auth)))
-                    :body :docs first :_rev)
+                    :body (get "docs") first (get "_rev"))
             result (<! (http/delete (str urld "/" id "?rev=" rev) db-auth))]
         (when-not (:success result)
           (reset! error (:body result)))
