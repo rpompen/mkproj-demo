@@ -157,7 +157,7 @@
 ;;; ATTACHMENT
 (defn doc-attach
   "Attach file to document in CouchDB and run callback for refresh."
-  [id f fname & meta-info]
+  [id f fname & {:keys [meta-info cb] :or {:cb identity}}]
   (go (let [old (-> (<! (qpost urlq (merge {:json-params {:selector {"_id" id}}}
                                            db-auth)))
                     :body (get "docs") first)
@@ -168,11 +168,12 @@
                                  (merge {:multipart-params [[fname f]]} db-auth))))]
         (if (:success result)
           (doc-update id {"meta" meta-new} identity)
-          (reset! error (:body result))))))
+          (reset! error (:body result)))
+        (cb))))
 
 (defn doc-del-attach
   "Delete attachment"
-  [id fname]
+  [id fname & {cb :cb :or {:cb identity}}]
   (go (let [old (-> (<! (qpost urlq (merge {:json-params {:selector {"_id" id}}}
                                            db-auth)))
                     :body (get "docs") first)
@@ -183,7 +184,8 @@
                                     (merge {:query-params {"rev" rev}} db-auth)))]
         (if (:success result)
           (doc-update id {"meta" meta-new} identity)
-          (reset! error (:body result))))))
+          (reset! error (:body result)))
+        (cb))))
 
 (defn doc-list-attach
   "List attachments"
