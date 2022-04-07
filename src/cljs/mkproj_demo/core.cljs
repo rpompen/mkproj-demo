@@ -1,8 +1,11 @@
 (ns mkproj-demo.core
-  (:require [hoplon.core :as h :refer [defelem div h1 p text input
+  (:require [hoplon.core :as h :refer [defelem div h1 p text input with-init!
                                        button form for-tpl fieldset legend]]
-            [javelin.core :as j :refer [cell cell=]]
+            [hoplon.jquery]
+            [javelin.core :as j :refer [cell cell= dosync]]
             [mkproj-demo.rpc :as rpc]))
+
+(with-init! (rpc/get-people))
 
 (defelem main [_ _]
   (div :id "app"
@@ -26,16 +29,16 @@
           (fieldset
            (legend "New person")
            (input :type "text" :placeholder "name"
-                  :change #(reset! name (.. % -target -value))
-                  :focus #(set! (.. % -target -value) nil))
+                  :value name
+                  :change #(reset! name @%))
            (input :type "number" :placeholder "age"
-                  :change #(reset! age (int (.. % -target -value)))
-                  :focus #(set! (.. % -target -value) nil))
+                  :value age
+                  :change #(reset! age (int @%)))
            (button :type "button"
                    :click (fn []
                             (rpc/add-db @name @age)
-                            (reset! name nil)
-                            (reset! age nil))
+                            (dosync (reset! name nil)
+                                    (reset! age nil)))
                    "Add"))))))
 
 (.replaceChild (.-body js/document)

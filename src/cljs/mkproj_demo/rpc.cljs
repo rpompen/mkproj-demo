@@ -89,12 +89,6 @@
                   :else (reset! cl msg)))))
       (close! ws-channel))))
 
-(defn fieldupdate []
-  (doseq [elem (.getElementsByClassName js/document "tewissen")]
-    (set! (.-value elem) (.-defaultValue elem)))
-  (doseq [elem (.getElementsByTagName js/document "textarea")]
-    (set! (.-value elem) (.-defaultValue elem))))
-
 ;;; UUID generator of CouchDB
 (defc uuids nil)
 
@@ -110,7 +104,7 @@
 ;;; CREATE
 (defn doc-add
   "Add document to CouchDB and run callback for refresh."
-  [m cb]
+  [m & {cb :cb :or {:cb identity}}]
   (go (let [uuid (-> (<! (qget (str urls "/_uuids"))) :body (get "uuids") first)
             result (<! (qput (str urld "/" uuid)
                                  (merge {:json-params m} db-auth)))]
@@ -125,7 +119,7 @@
    An optional funtion `:func` is applied to the result set.
    `page` is the page number to get. `pages` is a hash-map containing bookmarks.
    Initialize that map as nil."
-  [m cl & {:keys [func page-size page pages] :or {func identity, page-size 25, pages (cell :none)}}]
+  [m cl & {:keys [cb func page-size page pages] :or {cb identity, func identity, page-size 25, pages (cell :none)}}]
   (go
     (let [result
           (<! (qpost urlq
@@ -145,12 +139,12 @@
                      next-bookmark))
             (when (not= @pages :none) (swap! pages assoc :curpage (or page 0))))
         (reset! error (:body result)))
-      (fieldupdate))))
+      (cb))))
 
 ;;; UPDATE
 (defn doc-update
   "Update document in CouchDB and run callback for refresh."
-  [id m cb]
+  [id m & {cb :cb :or {:cb identity}}]
   (go (let [old (-> (<! (qpost urlq (merge {:json-params {"selector" {"_id" id}}}
                                                db-auth)))
                     :body (get "docs") first)
@@ -202,7 +196,7 @@
 ;;; DELETE
 (defn doc-delete
   "Delete document in CouchDB and run callback for refresh."
-  [id cb]
+  [id & {cb :cb :or {:cb identity}}]
   (go (let [rev (-> (<! (qpost urlq (merge {:json-params {"selector" {"_id" id}}}
                                                db-auth)))
                     :body (get "docs") first (get "_rev"))
@@ -213,11 +207,10 @@
 
 ;; segmented state + lenses
 ;; reduces load due to state modifications and allows easier refactoring
-(defonce state
-  (cell {}))
+(def state (cell {}))
 
-(defc= file-data (get-in state [:io :file-data]) #(swap! state assoc-in [:io :file-data] %))
-(defc= people (get-in state [:io :people]) #(swap! state assoc-in [:io :people] %))
+(defc= file-data    (get-in state [:io :file-data]) #(swap! state assoc-in [:io :file-data] %))
+(defc= people       (get-in state [:io :people]) #(swap! state assoc-in [:io :people] %))
 (defc= people-pages (get-in state [:ui :people-pages]) #(swap! state assoc-in [:ui :people-pages] %))
 
 ;; RPC to backend
@@ -239,12 +232,11 @@
 (defn add-db [name age] (doc-add {"type" "person"
                                   "name" name
                                   "age" age}
-                                 (fn []
-                                   (reset! people-pages {})
-                                   (js/setTimeout get-people 500))))
+                                 :cb (fn []
+                                       (reset! people-pages {})
+                                       (get-people))))
 
-(defn del-db [id] (doc-delete id (fn []
-                                   (reset! people-pages {})
-                                   (js/setTimeout get-people 500))))
+(defn del-db [id] (doc-delete id :cb (fn []
+                                       (reset! people-pages {})
+                                       (get-people))))
 
-(get-people)
