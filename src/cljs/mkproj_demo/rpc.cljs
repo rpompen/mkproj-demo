@@ -72,13 +72,15 @@
 
 ;; RPC launcher
 (defc error nil)
+(defc loading #{})
 
 (defn launch-fn 
   "Launches RPC call for `f` in backend. Return value goes into cell."
   [f cl & args]
   (go
-    (let [{:keys [ws-channel error]} (<! (ws-ch (str "ws" (when secure? \s) "://" server (when-not secure? (str ":" port)) "/ws")
+    (let [{:keys [ws-channel error] :as call} (<! (ws-ch (str "ws" (when secure? \s) "://" server (when-not secure? (str ":" port)) "/ws")
                                                 {:format :transit-json}))]
+      (swap! loading conj call)
       (if error
         (js/console.log "Error:" (pr-str error))
         (do
@@ -87,7 +89,8 @@
             (cond (= msg :castranil) (reset! cl nil)
                   (some? (:castraexpt msg)) (reset! error (:castraexpt msg))
                   :else (reset! cl msg)))))
-      (close! ws-channel))))
+      (close! ws-channel)
+      (swap! loading disj call))))
 
 ;;; UUID generator of CouchDB
 (defc uuids nil)
