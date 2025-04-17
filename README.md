@@ -1,3 +1,7 @@
+CAUTION: this project is out-of-date
+
+The mkproj script allows you to create the latest and greatest version of this.
+
 # mkproj-demo
 
 ## An empty project made by mkproj
